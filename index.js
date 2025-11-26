@@ -7,7 +7,7 @@ require("dotenv").config();
 
 const authRoutes = require("./routes/auth");
 const messageRoutes = require("./routes/messages");
-const { Server } = require("socket.io");
+const socket = require("socket.io"); // FIXED — was missing before
 
 const app = express();
 
@@ -47,9 +47,9 @@ mongoose
 app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
 
-/* 🔥 Default route */
+/* 🔥 Default route (Fix for Cannot GET /) */
 app.get("/", (req, res) => {
-  res.send("Backend is running...");
+  res.send("Backend is running 🚀");
 });
 
 /* =============== START SERVER =============== */
@@ -63,12 +63,11 @@ const io = socket(server, {
   cors: {
     origin: [
       "http://localhost:3000",
-      "https://chatting-app-capstone-frontend.vercel.app"
+      "https://chatting-app-capstone-frontend.vercel.app" // your Vercel frontend
     ],
     credentials: true,
   },
 });
-
 
 global.onlineUsers = new Map();
 
@@ -101,7 +100,6 @@ io.on("connection", (socket) => {
   socket.on("call-user", (data) => {
     const receiverId = typeof data.to === "string" ? data.to : data.to._id;
     const recvSocket = onlineUsers.get(receiverId);
-    console.log("📞 Calling:", receiverId, "->", recvSocket);
     if (recvSocket)
       socket.to(recvSocket).emit("incoming-call", { from: data.from });
   });
