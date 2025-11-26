@@ -47,6 +47,11 @@ mongoose
 app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
 
+/* 🔥 Default route */
+app.get("/", (req, res) => {
+  res.send("Backend is running...");
+});
+
 /* =============== START SERVER =============== */
 const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => {
@@ -54,12 +59,16 @@ const server = app.listen(PORT, () => {
 });
 
 /* =============== SOCKET.IO SERVER =============== */
-const io = new Server(server, {
+const io = socket(server, {
   cors: {
-    origin: ["http://localhost:3000", "https://chatting-app-frontend-tan.vercel.app"],
+    origin: [
+      "http://localhost:3000",
+      "https://chatting-app-capstone-frontend.vercel.app"
+    ],
     credentials: true,
   },
 });
+
 
 global.onlineUsers = new Map();
 
