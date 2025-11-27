@@ -12,7 +12,13 @@ const { Server } = require("socket.io");
 const app = express();
 
 /* ------------------ MIDDLEWARES ------------------ */
-app.use(cors());
+app.use(cors({
+  origin: [
+    "http://localhost:3000",
+    "https://chatting-app-capstone-frontend.vercel.app",
+  ],
+  credentials: true,
+}));
 app.use(express.json());
 
 /* ------------------ SERVE UPLOADS ------------------ */
@@ -68,9 +74,9 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
     credentials: true,
   },
+  pingTimeout: 60000, // prevent disconnect during long calls
 });
 
-/* Store active users */
 global.onlineUsers = new Map();
 
 io.on("connection", (socket) => {
@@ -83,8 +89,7 @@ io.on("connection", (socket) => {
   /* ---------- TEXT MESSAGE ---------- */
   socket.on("send-msg", (data) => {
     const recvSocket = onlineUsers.get(data.to);
-    if (recvSocket)
-      socket.to(recvSocket).emit("msg-recieve", data.msg);
+    if (recvSocket) socket.to(recvSocket).emit("msg-recieve", data.msg);
   });
 
   /* ---------- FILE MESSAGE ---------- */
@@ -106,26 +111,22 @@ io.on("connection", (socket) => {
 
   socket.on("call-accepted", (data) => {
     const recvSocket = onlineUsers.get(data.to);
-    if (recvSocket)
-      socket.to(recvSocket).emit("call-accepted");
+    if (recvSocket) socket.to(recvSocket).emit("call-accepted");
   });
 
   socket.on("call-rejected", (data) => {
     const recvSocket = onlineUsers.get(data.to);
-    if (recvSocket)
-      socket.to(recvSocket).emit("call-rejected");
+    if (recvSocket) socket.to(recvSocket).emit("call-rejected");
   });
 
   socket.on("send-offer", ({ to, offer }) => {
     const recvSocket = onlineUsers.get(to);
-    if (recvSocket)
-      socket.to(recvSocket).emit("receive-offer", { offer });
+    if (recvSocket) socket.to(recvSocket).emit("receive-offer", { offer });
   });
 
   socket.on("send-answer", ({ to, answer }) => {
     const recvSocket = onlineUsers.get(to);
-    if (recvSocket)
-      socket.to(recvSocket).emit("receive-answer", { answer });
+    if (recvSocket) socket.to(recvSocket).emit("receive-answer", { answer });
   });
 
   socket.on("ice-candidate", ({ to, candidate }) => {
@@ -134,10 +135,10 @@ io.on("connection", (socket) => {
       socket.to(recvSocket).emit("receive-ice-candidate", { candidate });
   });
 
+  /* ---------- END CALL ---------- */
   socket.on("end-call", ({ to }) => {
     const recvSocket = onlineUsers.get(to);
-    if (recvSocket)
-      socket.to(recvSocket).emit("end-call");
+    if (recvSocket) socket.to(recvSocket).emit("end-call");
   });
 
   socket.on("disconnect", () => {
