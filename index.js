@@ -7,25 +7,24 @@ require("dotenv").config();
 
 const authRoutes = require("./routes/auth");
 const messageRoutes = require("./routes/messages");
-const { Server } = require("socket.io"); // ✔ Correct import
+const { Server } = require("socket.io");
 
 const app = express();
 
-/* =============== MIDDLEWARES =============== */
+/* ------------------ MIDDLEWARES ------------------ */
 app.use(cors());
 app.use(express.json());
 
-/* 🔥 Serve uploaded files */
+/* ------------------ SERVE UPLOADS ------------------ */
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-/* 🔥 Multer local storage config */
+/* ------------------ MULTER UPLOAD ------------------ */
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, "./uploads/"),
   filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname),
 });
 const upload = multer({ storage });
 
-/* 📁 File upload API */
 app.post("/api/messages/upload", upload.single("file"), (req, res) => {
   const fileUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
   return res.json({
@@ -34,41 +33,44 @@ app.post("/api/messages/upload", upload.single("file"), (req, res) => {
   });
 });
 
-/* =============== DATABASE =============== */
+/* ------------------ DATABASE ------------------ */
 mongoose
   .connect(process.env.MONGO_URL, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
   .then(() => console.log("DB Connection Successful"))
-  .catch((err) => console.error("MongoDB Connection Error:", err.message));
+  .catch((err) =>
+    console.error("MongoDB Connection Error:", err.message)
+  );
 
-/* =============== ROUTES =============== */
+/* ------------------ ROUTES ------------------ */
 app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
 
-/* 🔥 Default route */
 app.get("/", (req, res) => {
   res.send("Backend is running 🚀");
 });
 
-/* =============== START SERVER =============== */
+/* ------------------ START SERVER ------------------ */
 const PORT = process.env.PORT || 5000;
-const server = app.listen(PORT, () => {
-  console.log(`🚀 Server started on port ${PORT}`);
-});
+const server = app.listen(PORT, () =>
+  console.log(`🚀 Server started on port ${PORT}`)
+);
 
-/* =============== SOCKET.IO SERVER =============== */
+/* ------------------ SOCKET.IO ------------------ */
 const io = new Server(server, {
   cors: {
     origin: [
       "http://localhost:3000",
       "https://chatting-app-capstone-frontend.vercel.app",
     ],
+    methods: ["GET", "POST"],
     credentials: true,
   },
 });
 
+/* Store active users */
 global.onlineUsers = new Map();
 
 io.on("connection", (socket) => {
@@ -78,12 +80,14 @@ io.on("connection", (socket) => {
     onlineUsers.set(userId, socket.id);
   });
 
+  /* ---------- TEXT MESSAGE ---------- */
   socket.on("send-msg", (data) => {
     const recvSocket = onlineUsers.get(data.to);
     if (recvSocket)
       socket.to(recvSocket).emit("msg-recieve", data.msg);
   });
 
+  /* ---------- FILE MESSAGE ---------- */
   socket.on("send-file", (data) => {
     const recvSocket = onlineUsers.get(data.to);
     if (recvSocket)
@@ -93,7 +97,7 @@ io.on("connection", (socket) => {
       });
   });
 
-  /* 📞 Audio Call Events */
+  /* ---------- AUDIO CALL EVENTS ---------- */
   socket.on("call-user", (data) => {
     const recvSocket = onlineUsers.get(data.to);
     if (recvSocket)
